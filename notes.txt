@@ -1,0 +1,3 @@
+# Day 1
+
+1.  Find out how many studies in OpenTree have branch lengths.
