@@ -1,3 +1,20 @@
 # Day 1
 
 1.  Find out how many studies in OpenTree have branch lengths.
+
+
+
+
+
+### Reasonable goals
+1.  get source tree with branch lengths
+2.  identify calibration information
+3.  congruify (geiger?  arbor?)
+4.  return information to OpenTree
+
+### Fantasy goals
+1.  get subtree from list of taxa
+2.  identify calibration information (PBDB)
+3.  obtain sequence data (phylomill? phylota?)
+4.  align and estimate molecular clock
+5.  return to OpenTree
