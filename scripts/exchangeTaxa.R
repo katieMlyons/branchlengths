@@ -1,5 +1,12 @@
+# setwd("/Users/miranda/Desktop/OpenTree/branchlengths")
+
 library(geiger)
-library(phytools)
+
+# TO RUN:  after loading all of the data and the function exchangeTaxa(), try ...
+exchangeTaxa(tree, trait1, trait2) # runs on simulated data
+exchangeTaxa(whales, with.br, randomwhales)
+
+# library(phytools)
 
 # Current code basically just groups taxa relative to other taxa of interest
 # So, what we REALLY want is to take in a "big" tree (i.e., the synthetic
