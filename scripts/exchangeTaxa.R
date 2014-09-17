@@ -1,18 +1,16 @@
 library(geiger)
+library(phytools)
 
-
-# New approach!
-# Instead of worrying about branch lengths, just identify a subset
-# of the tree that you're interested in and collapse all other taxa
-# into the same (appropriate) group.
-
-### NOTE:  doesn't quite work correctly -- only groups together taxa that
-# are SISTER to one of the "interesting taxa"
-#  next step:  fix this problem!
+# Current code basically just groups taxa relative to other taxa of interest
+# So, what we REALLY want is to take in a "big" tree (i.e., the synthetic
+# tree or a subset of the synthetic tree), and a data.frame with comparative
+# data and with branch length information.  That way, we can find sets of
+# species that have both a species with comp data and with br data (if any
+# exists).
 
 
 tree <- sim.bdtree(b=1, d=0, n=20)
-int.tax <- sample(tree$tip.label, 3)
+int.tax <- sample(tree$tip.label, 10)
 node <- fastMRCA(tree, int.tax[1], int.tax[2])
 
 # identify the interesting taxa in the df
@@ -35,7 +33,10 @@ not.int.tax <- as.character(df[which(!(df$tree.tip.label %in% int.tax)), "tree.t
 for(i in not.int.tax) {
   # get the immediate ancestral node for that interesting taxon
   # extract a subtree and get the list of species in that subtree
-  anc <- fastMRCA(group.tree, i, i)
+  anc <- tree$edge[which(tree$edge[,2]==(which(tree$tip.label==i))),1]
+#   anc <- fastMRCA(group.tree, i, i)
+#   which(tree$tip.label=='s3')
+  
   sp.subset <- extract.clade(group.tree, anc)$tip.label
   
   # for that list of species, if there's one interesting taxon,
@@ -46,12 +47,27 @@ for(i in not.int.tax) {
     df[which(df$tree.tip.label %in% sp.subset), "group"] <- group
   }
   
-  # if there are more than one interesting taxa in there, stop
-  if(sum(int.tax %in% sp.subset) != 1) {stop}  
+  # if there are NO interesting taxa in there, set their group numbers 
+  # equal
+#   if(sum(int.tax %in% sp.subset) < 1) {
+#     print(sp.subset)
+#   }
   
+  # if there are more than one interesting taxa in there, stop
+  if(sum(int.tax %in% sp.subset) > 1) {
+    stop
+  }
 }
 
 plot(tree, tip.color=df$group)
 # plot(tree, show.tip.label=FALSE)
 # tiplabels(col=df$group, bg=df$int.tax)
 df
+
+
+# next two steps:
+#   1.  fix the fastMRCA thing to get the ancestral node
+#   2.  add in code for where two species are sister but don't have any
+#       interesting taxa (? if it's necessary ?)
+
+
