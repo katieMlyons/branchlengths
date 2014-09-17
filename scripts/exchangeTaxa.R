@@ -54,6 +54,20 @@ exchangeTaxa <- function(tree, sp.with.trait1, sp.with.trait2) {
   }
   plot(tree, tip.color=df$group)
   
-  return(df)
+  # next up:  returning not just the df, but rather a list of taxa that
+  # are exchangeable with trait2 (not trait1, because everything is
+  # grouped by trait1)
+  exchange.groups <- list()
+  
+  for(j in unique(df$group)) {
+    # select the current group and extract the species in that group
+    g <- df[which(df$tree.tip.label %in% j), "group"]
+    sp <- as.character(df[which(df$group == j), "tree.tip.label"])
+    
+    # add that group to the list
+    exchange.groups <- append(exchange.groups, list(sp))
+  }
+  return(exchange.groups)
+#   return(list(exchange.groups, df))
 }
 
