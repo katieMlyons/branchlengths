@@ -2,6 +2,7 @@
 
 1.  Find out how many studies in OpenTree have branch lengths.
 - 643 studies with branch length information
+- 1155 trees across those 643 studies with branch length information
 
 ### Reasonable goals
 1.  get source tree with branch lengths
