@@ -1,14 +1,41 @@
-pbdb.fossil.min<-function(names) 
+## this function will return the youngest secure age of the oldest occurrence of a specified clade (or list of taxa)
+
+pbdb.fossil.min<-function(names,upper.bound)
 
 {
-	
+
 pbdb.data<-pbdb_occurrences(limit="all",base_name=names,vocab="pbdb",show=c("phylo", "time", "ident"))
 
-if(!length(pbdb.data)==0) { 
+if(!length(pbdb.data)==0) { # if the data frame is not empty
 
-early.ages=pbdb.data$early_age
-max.age=max(early.ages)
+	late.ages=pbdb.data$late_age # colunm contains: late bound of the geologic time range associated with this occurrence (in Ma)
+	late.ages=sort(late.ages) # sort a -> b
+	
+	### the following is a quick solution
+	### for eliminating dates that are implausibly old
+	count=0
 
+	while(count==0) {
+		
+		if (length(late.ages) > 0) { # if there are available dates
+		
+			max.age=max(late.ages) # define the greatest
+			
+			if(max.age >=upper.bound) { # if this is greater than the specified upper limit
+				late.ages<-late.ages[-length(late.ages)] # remove the last element of this list
+			}
+			else {
+			
+				count=1	
+			}
+		}
+		# this would mean that there were no suitable dates available in the list
+		else {
+			max.age=0
+			count=1
+		}	
+	}
+	###
 }
 
 else {
@@ -77,7 +104,7 @@ else {
 
 ### We need info. about the (1) the taxonomy, & (2) the stratigraphy.
 ### show "ident" required to include genes_name
-### show "time" required to include early_age
+### show "time" required to include late_age
 
 ### To view the headers
 
