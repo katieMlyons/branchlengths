@@ -1,3 +1,4 @@
+## returns unique tree ids and corresponding study ids for a set of ottIDs
 findsourcetrees <- function(otts){
 ##start with a list of ottids
 
