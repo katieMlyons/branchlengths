@@ -11,7 +11,7 @@ library(geiger)
 #  next step:  fix this problem!
 
 
-tree <- sim.bdtree(b=1, d=0, n=10)
+tree <- sim.bdtree(b=1, d=0, n=20)
 int.tax <- sample(tree$tip.label, 3)
 node <- fastMRCA(tree, int.tax[1], int.tax[2])
 
@@ -28,9 +28,11 @@ df[which(df$tree.tip.label %in% int.tax), "int.tax"] <- 1 # sets each int.tax = 
 
 group.tree <- tree
 
-for(i in int.tax) {
-  print(i)
-  
+# very messy and ugly, but selects the species names that are not in the
+# list of interesting taxa
+not.int.tax <- as.character(df[which(!(df$tree.tip.label %in% int.tax)), "tree.tip.label"])
+
+for(i in not.int.tax) {
   # get the immediate ancestral node for that interesting taxon
   # extract a subtree and get the list of species in that subtree
   anc <- fastMRCA(group.tree, i, i)
@@ -49,5 +51,7 @@ for(i in int.tax) {
   
 }
 
-plot(tree)
+plot(tree, tip.color=df$group)
+# plot(tree, show.tip.label=FALSE)
+# tiplabels(col=df$group, bg=df$int.tax)
 df
