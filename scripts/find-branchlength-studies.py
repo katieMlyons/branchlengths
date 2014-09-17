@@ -88,7 +88,7 @@ study_list = get_study_list (api_url)
 print "...complete"
 
 
-handle = open('branch_length_studies.csv', 'a')
+handle = open('branch_length_studies.tsv', 'a')
 for s in study_list:
     study = s
     print "Checking study %s for branch lengths..." %study
@@ -97,12 +97,8 @@ for s in study_list:
     for t in tree_ids:
         tree = get_tree(t, study_url, study)
         branch_lengths, description = find_branchlengths(tree, t)
-       
         if branch_lengths is True:
-            if description:
-                branch_length_trees.append(t+"_"+"&".join(description))
-            else:
-                branch_length_trees.append(t)
+            branch_length_trees.append(t)
     if len(branch_length_trees) > 0:
         if len(branch_length_trees) > 1:
              tree_string = ",".join(branch_length_trees)
