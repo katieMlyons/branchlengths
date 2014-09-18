@@ -1,4 +1,6 @@
-## this function will return the youngest secure age of the oldest occurrence of a specified clade (or list of taxa)
+require(paleobioDB)
+
+## this function will return the youngest secure age of the oldest occurrence for a specified clade (or list of taxa/species)
 
 pbdb.fossil.min<-function(names,upper.bound)
 
