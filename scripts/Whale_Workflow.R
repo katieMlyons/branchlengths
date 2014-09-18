@@ -1,10 +1,12 @@
 ## Complete whale analysis workflow:
 ## Setup
-setwd("~/repos/OThackathon/branchlengths/scripts/")
+# setwd("~/repos/OThackathon/branchlengths/scripts/")
+setwd("/Users/miranda/Desktop/OpenTree/branchlengths/scripts/")
 ## inputs:
 table <- read.csv("../data/CetaceanCompData.csv")
 bldatabase <- read.csv("../data/branch_length_studies.csv", header=FALSE)
 content <- httr:::content
+
 
 ## TNRS
 #require(devtools)
@@ -14,7 +16,9 @@ require(rjson)
 require(geiger)
 taxalist <- table$genspec
 tax <- rotl::tnrs_match_names(taxalist)
-ottids <- as.character(tax$ott_id)
+tax <- tnrs_match_names(as.character(taxalist))
+
+ottids <- as.character(tax$ott_id) # gets ottID for the comparative data
 
 ## Get all studies with these ottids
 findsourcetrees <- function(otts){
@@ -82,10 +86,96 @@ tree <- res[[whichTree]][[1]]
 tree$tip.label <- gsub("'", "", tree$tip.label, fixed=TRUE)
 
 
-## Replace taxa that can be replaced with exchangeable taxa 
-####
-#### Miranda, put code here
-####
+
+
+
+
+#############################################################################
+#############################################################################
+#############################################################################
+# Exchange taxa:  we have a set of species (on a tree) with comparative data,
+# and a set of species (on a different tree) with branch lengths, and a tree
+# (the synthetic tree) that includes most/all of the species that are in the 
+# first two trees.  We want to use the synthetic tree to match up names on
+# comparative tree with names on the time tree to figure out if any of the
+# comparative tree species can be exchanged with species on the time tree.
+
+comparative.tree <- read.tree("../data/Induced_whaletree.phy")
+time.tree <- tree
+
+###  Step 1:  get the synthetic tree by getting the subtree for the root of
+# the comparative tree
+mrca <- tol_mrca(ott_ids=ottids)$mrca_node_id
+subtree <- tol_subtree(node_id=mrca)
+subtree$tip.label <- gsub("_ott\\d+", "", subtree$tip.label) # remove ottID after the tip labels
+comparative.tree$tip.label <- gsub("_ott\\d+", "", comparative.tree$tip.label) # remove ottID after the tip labels
+
+
+exchangeTaxa <- function(tree, sp.with.trait1, sp.with.trait2) {
+  trait1 <- sp.with.trait1 # typically, comparative data
+  trait2 <- sp.with.trait2 # typically, branch length data
+
+  df <- data.frame(tree$tip.label, trait1=rep(0, length(tree$tip.label)), trait2=rep(0, length(tree$tip.label)), group=seq(from=1, to=length(tree$tip.label), by=1))
+  df[which(df$tree.tip.label %in% trait1), "trait1"] <- 1 # sets each int.tax = 1 if that species is in the list of interesting taxa  
+  df[which(df$tree.tip.label %in% trait2), "trait2"] <- 1 # sets each int.tax = 1 if that species is in the list of interesting taxa  
+  
+  for(i in trait1) {
+    
+    # if the current taxon IS in the subtree (because it might not be) then
+    # continue; otherwise, stop
+    if(i %in% tree$tip.label) {
+
+      # get the immediate ancestral node for that interesting taxon
+      # extract a subtree and get the list of species in that subtree  
+      anc <- tree$edge[which(tree$edge[,2]==(which(tree$tip.label==i))),1]
+      sp.subset <- extract.clade(tree, anc)$tip.label
+      
+      # for that list of species, if there's one interesting taxon,
+      # set all of the other groups = to the group of that interesting taxon
+        if(sum(trait1 %in% sp.subset) == 1) {
+          curr <- trait1[trait1 %in% sp.subset]
+          group <- df[which(curr == df$tree.tip.label), "group"] # get the group for the interesting taxon
+          df[which(df$tree.tip.label %in% sp.subset), "group"] <- group
+        }
+        
+        # if there are more than one interesting taxa in there, stop
+        if(sum(trait1 %in% sp.subset) > 1) {stop}
+      
+      }
+    
+    }
+    
+#   plot(tree, tip.color=df$group)
+  
+  # next up:  returning not just the df, but rather a list of taxa that
+  # are exchangeable with trait2 (not trait1, because everything is
+  # grouped by trait1)
+  exchange.groups <- list()
+  
+  for(j in unique(df$group)) {
+    # select the current group and extract the species in that group
+    g <- df[which(df$tree.tip.label %in% j), "group"]
+    sp <- as.character(df[which(df$group == j), "tree.tip.label"])
+    
+    # add that group to the list
+    exchange.groups <- append(exchange.groups, list(sp))
+  }
+  return(exchange.groups)
+  #   return(list(exchange.groups, df))
+}
+
+
+sim.taxa <- exchangeTaxa(subtree, time.tree$tip.label, comparative.tree$tip.label)
+
+
+
+
+
+#############################################################################
+#############################################################################
+#############################################################################
+
+
 
 ## Find all trees with calibration times
 #require(foreach)
