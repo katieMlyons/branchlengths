@@ -210,7 +210,18 @@ ttsummary <- data.frame(ntips = sapply(timetrees, function(x) x$ntips),
 ttsummary
 
 ## get all timetrees, drop non-matching tips
+tmp <- lapply(timetrees, function(x) x$tree)                  
+dropAbsent <- function(x, taxalist){
+  tr <- x$tree
+  tr$tip.label <- gsub("\'", "", tr$tip.label)
+  tipL <- tr$tip.label
+  toDrop <- tipL[!(tipL %in% taxalist)]
+  tr <- drop.tip(tr, toDrop)
+  return(tr)
+}
+tmp[[1]]$tip.label
 
+dropTipTrees <- lapply(timetrees, function(x) dropAbsent(x, gsub(" ", "_", newTaxa)))
 
 
 ## Get taxonomy
