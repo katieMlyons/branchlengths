@@ -24,7 +24,7 @@ ottids <- as.character(tax$ott_id) # gets ottID for the comparative data
 findsourcetrees <- function(otts){
   ##start with a list of ottids
   findstudies <- function(otts){
-    res <- rotl::studies_find_trees(property="ot:ottId", value=otts)
+    res <- rotl::studies_find_trees(property="ot:ottId", value=otts,exact = TRUE)
     res <- fromJSON(content(res, "text"))$matched_studies
   }
   gettrees <- function(x, studies){
@@ -183,10 +183,33 @@ sim.taxa <- exchangeTaxa(subtree, time.tree$tip.label, comparative.tree$tip.labe
 #registerDoParallel(cores=ncores)
 newTaxa <- tree$tip.label[!(tree$tip.label %in% taxalist)]
 newTaxa <- gsub("_", " ", newTaxa)
-newTax <- rotl::tnrs_match_names(newTaxa)
+newTaxa <- gsub(" sp[.]", "", newTaxa)
+newTaxa <- gsub(" spp[.]", "", newTaxa)
 
-
+## faster to turn off approximate matching BUT may return NAs
+newTax <- rotl::tnrs_match_names(newTaxa, do_approximate_matching = FALSE)
+mmTaxa <- which(is.na(newTax$ott_id))
+if(length(mmTaxa)>0){
+  mmTax <- rotl::tnrs_match_names(newTaxa[mmTaxa], do_approximate_matching = TRUE)
+  newTax[mmTaxa,] <- mmTax
+}
 ## Find all timetrees
+tttaxa <- newTax$ott_id
+ttsource <- findsourcetrees(tttaxa)
+## must have at least 2 matching tips
+ttres <- lapply(which(ttsource$counts>2), function(x) getStudyTrees(ttsource$table[x,1], ttsource$table[x,2], format="newick"))
+ttres <- ttres[which(!(sapply(ttres, is.null)))]
+## must contain branch lengths
+timetrees <- ttres[which(sapply(ttres ,function(x) x$branchLengthMode == "ot:time"))]
+ttsummary <- data.frame(ntips = sapply(timetrees, function(x) x$ntips),
+                        matching = ttsource$counts[names(timetrees)],
+                        timeUnits = sapply(timetrees, function(x) x$branchLengthTimeUnit[[1]]),
+                        description = sapply(timetrees, function(x) x$branchLengthDescription[[1]]),
+                        mode = sapply(timetrees, function(x) x$branchLengthMode[[1]])
+)
+ttsummary
+
+## get all timetrees, drop non-matching tips
 
 
 
