@@ -240,6 +240,9 @@ dropna <- function(tlist){
   tlist
 }
 cleaned <- dropna(dropTipTrees)
+#################################
+## cleaned is the list of timetrees overlapping with the chosen source tree!
+
 
 ## Get taxonomy
 tree$tip.label <- gsub("\'", "", tree$tip.label)
