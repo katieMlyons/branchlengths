@@ -232,7 +232,14 @@ dropAbsent <- function(x, taxalist){
 tmp[[1]]$tip.label
 
 dropTipTrees <- lapply(timetrees, function(x) dropAbsent(x, gsub(" ", "_", newTaxa)))
-
+## in case any edge lengths are NA, remove those trees
+dropna <- function(tlist){
+  nalist <- lapply(dropTipTrees, function(x) any(is.na(x$edge.length)))
+  trues <- grep(TRUE, nalist)
+  tlist[trues] <- NULL
+  tlist
+}
+cleaned <- dropna(dropTipTrees)
 
 ## Get taxonomy
 tree$tip.label <- gsub("\'", "", tree$tip.label)
