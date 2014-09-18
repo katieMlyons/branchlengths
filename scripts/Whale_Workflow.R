@@ -111,61 +111,71 @@ subtree$tip.label <- gsub("_ott\\d+", "", subtree$tip.label) # remove ottID afte
 comparative.tree$tip.label <- gsub("_ott\\d+", "", comparative.tree$tip.label) # remove ottID after the tip labels
 
 
+
+
 exchangeTaxa <- function(tree, sp.with.trait1, sp.with.trait2) {
   trait1 <- sp.with.trait1 # typically, comparative data
   trait2 <- sp.with.trait2 # typically, branch length data
 
+  # setting up the data frame that contains the list of species, whether they
+  # have comparative data, and whether they have branch length data
   df <- data.frame(tree$tip.label, trait1=rep(0, length(tree$tip.label)), trait2=rep(0, length(tree$tip.label)), group=seq(from=1, to=length(tree$tip.label), by=1))
-  df[which(df$tree.tip.label %in% trait1), "trait1"] <- 1 # sets each int.tax = 1 if that species is in the list of interesting taxa  
-  df[which(df$tree.tip.label %in% trait2), "trait2"] <- 1 # sets each int.tax = 1 if that species is in the list of interesting taxa  
+  df[which(df$tree.tip.label %in% trait1), "trait1"] <- 1 # sets each int.tax = 1 if that species is in the list of interesting taxa
+  df[which(df$tree.tip.label %in% trait2), "trait2"] <- 1 # sets each int.tax = 1 if that species is in the list of interesting taxa
+
+  # list of comparative species and their exchangeable taxa
+  exchange.groups <- list()
   
+  # loop through each species with comparative trait data (in trait1)
   for(i in trait1) {
     
-    # if the current taxon IS in the subtree (because it might not be) then
-    # continue; otherwise, stop
+    # if and only if the species is present in the big tree:
     if(i %in% tree$tip.label) {
-
+      
       # get the immediate ancestral node for that interesting taxon
-      # extract a subtree and get the list of species in that subtree  
+      # extract a subtree and get the list of species in that subtree
       anc <- tree$edge[which(tree$edge[,2]==(which(tree$tip.label==i))),1]
       sp.subset <- extract.clade(tree, anc)$tip.label
       
-      # for that list of species, if there's one interesting taxon,
+      # for that subset of species, if there's one interesting taxon,
       # set all of the other groups = to the group of that interesting taxon
-        if(sum(trait1 %in% sp.subset) == 1) {
-          curr <- trait1[trait1 %in% sp.subset]
-          group <- df[which(curr == df$tree.tip.label), "group"] # get the group for the interesting taxon
-          df[which(df$tree.tip.label %in% sp.subset), "group"] <- group
-        }
-        
-        # if there are more than one interesting taxa in there, stop
-        if(sum(trait1 %in% sp.subset) > 1) {stop}
-      
+      if(sum(trait1 %in% sp.subset) == 1) {
+        curr <- trait1[trait1 %in% sp.subset]
+        group <- df[which(curr == df$tree.tip.label), "group"] # get the group for the interesting taxon
+        df[which(df$tree.tip.label %in% sp.subset), "group"] <- group
       }
+      
+      # if there are more than one interesting taxa in there, stop
+      if(sum(trait1 %in% sp.subset) > 1) {
+        stop
+      }
+      
+    } # end of what to do if the species isn't in the big tree 
     
-    }
+  } # end of looping through species with comparative data
+
+  # next up: return the list of taxa that are exchangeable with each of
+  # the comparative species
+  comp.sp <- df[which(df$trait1 == 1), ]
+  for(j in 1:nrow(comp.sp)) {
+    # get the group number for that species
+    group.num <- comp.sp[j, "group"]
     
-#   plot(tree, tip.color=df$group)
-  
-  # next up:  returning not just the df, but rather a list of taxa that
-  # are exchangeable with trait2 (not trait1, because everything is
-  # grouped by trait1)
-  exchange.groups <- list()
-  
-  for(j in unique(df$group)) {
-    # select the current group and extract the species in that group
-    g <- df[which(df$tree.tip.label %in% j), "group"]
-    sp <- as.character(df[which(df$group == j), "tree.tip.label"])
+    print(group.num)
     
-    # add that group to the list
-    exchange.groups <- append(exchange.groups, list(sp))
+    # extract all the species that share that group number
+    e.taxa <- as.character(df[which(df$group == group.num), "tree.tip.label"])
+    
+    # add those species to the exchange.groups object
+    exchange.groups <- append(exchange.groups, list(e.taxa))
   }
+
   return(exchange.groups)
-  #   return(list(exchange.groups, df))
+
 }
 
 
-sim.taxa <- exchangeTaxa(subtree, time.tree$tip.label, comparative.tree$tip.label)
+sim.taxa <- exchangeTaxa(subtree, comparative.tree$tip.label, time.tree$tip.label)
 
 
 
