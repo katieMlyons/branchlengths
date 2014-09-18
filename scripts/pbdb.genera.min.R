@@ -1,6 +1,7 @@
 
 pbdb.genus.min<-function(pbdb.data,genera, upper.bound=100)
-
+# note the upper bound is fixed but you may with to change this depending on the group
+  
 {
 
   if(!length(pbdb.data)==0) { # if the data frame is not empty
