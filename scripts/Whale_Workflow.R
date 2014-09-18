@@ -81,6 +81,12 @@ whichTree <- 2
 tree <- res[[whichTree]][[1]]
 tree$tip.label <- gsub("'", "", tree$tip.label, fixed=TRUE)
 
+
+## Replace taxa that can be replaced with exchangeable taxa 
+####
+#### Miranda, put code here
+####
+
 ## Find all trees with calibration times
 #require(foreach)
 #require(doParallel)
@@ -90,14 +96,9 @@ newTaxa <- gsub("_", " ", newTaxa)
 newTax <- rotl::tnrs_match_names(newTaxa)
 
 
-
-
-
-
 ## Find all timetrees
 
 
-## Replace taxa that can be replaced with exchangeable taxa 
 
 ## Get taxonomy
 tree$tip.label <- gsub("\'", "", tree$tip.label)
