@@ -1,74 +1,61 @@
-## Complete whale analysis workflow:
-## Setup
+## # Complete whale analysis workflow:
+
+#################################
+
+## ## Part 1. Set the working directory, load required libraries and functions
 # setwd("~/repos/OThackathon/branchlengths/scripts/")
-setwd("/Users/miranda/Desktop/OpenTree/branchlengths/scripts/")
-## inputs:
-table <- read.csv("../data/CetaceanCompData.csv")
-bldatabase <- read.csv("../data/branch_length_studies.csv", header=FALSE)
-content <- httr:::content
+# setwd("/Users/miranda/Desktop/OpenTree/branchlengths/scripts/")
 
-
-## TNRS
 #require(devtools)
 #install_github("rotl", user="fmichonneau")
-require(rotl)
-require(rjson)
-require(geiger)
+# require(rotl)
+# require(rjson)
+# require(geiger)
+
+#################################
+
+## ## Part 2. Load required input files
+## The file CetaceanCompData.csv contains a list of taxa for which we have compartive data.
+table <- read.csv("../data/CetaceanCompData.csv")
+bldatabase <- read.csv("../data/branch_length_studies.csv", header=FALSE) # where will the users obtain this?
+
+content <- httr:::content # does this mean this is necessary? require(httr)
+
+## TNRS
+#require(devtools) # delete
+#install_github("rotl", user="fmichonneau") # delete
+require(rotl) # delete
+require(rjson) # delete
+require(geiger) # delete
+
+#################################
+
+## ## Part 3. Download source trees from the Open Tree of Life database.
+
+# Step 1. Generate a list of taxa for which we have comparive data.
 taxalist <- table$genspec
+<<<<<<< HEAD
+# Step 2. what are the following two lines doing?
+tax <- rotl::tnrs_match_names(taxalist)
+=======
 #tax <- rotl::tnrs_match_names(taxalist)
+>>>>>>> 470c6d33b6e2efa42c611c21c9df4788b3405fac
 tax <- tnrs_match_names(as.character(taxalist))
 
-ottids <- as.character(tax$ott_id) # gets ottID for the comparative data
+# Step 3. Gets ottIDs for the comparative data.
+ottids <- as.character(tax$ott_id) 
 
-## Get all studies with these ottids
-findsourcetrees <- function(otts){
-  ##start with a list of ottids
-  findstudies <- function(otts){
-    res <- rotl::studies_find_trees(property="ot:ottId", value=otts,exact = TRUE)
-    res <- fromJSON(content(res, "text"))$matched_studies
-  }
-  gettrees <- function(x, studies){
-    matched_trees <- studies[[x]]
-    treeId <- sapply(matched_trees, function(x) x$matched_trees[[1]]$nexson_id)
-    studyId <- sapply(matched_trees, function(x) x['ot:studyId'][[1]])
-    df <- cbind(studyId, treeId)
-  }
-  
-  studies <- lapply(otts, function(x) findstudies(x))
-  table <- do.call(rbind, lapply(1:length(studies), gettrees, studies=studies))
-  counts <- table(paste(table[,1], table[,2], sep="_"))
-  table <- unique(table)
-  counts <- counts[paste(table[,1], table[,2], sep="_")]
-  list(counts=counts, table = table)
-}
+# Step 4. Download all studies (can we call these source trees?) that contain these ottIDs.
+# (the function findsourcetrees has been moved to the bottom of this file)
 studyTrees <- findsourcetrees(ottids)      
 
-## Filter down to trees that have branch lengths
-getStudyTrees <- function(study, phy, format="newick"){
-  res <- httr:::GET(paste(rotl:::otl_url(),"/", rotl:::otl_version(), "/study/", study, "/tree/", phy, sep=""))
-  stringRes <- content(res,"text")
-  jsRes <- fromJSON(stringRes)
-  hasBranches <- length(grep("@length", stringRes))>0
-  branchLengthDescription <- jsRes[[1]]['^ot:branchLengthDescription']
-  branchLengthMode <- jsRes[[1]]['^ot:branchLengthMode']
-  branchLengthTimeUnit <- jsRes[[1]]['^ot:branchLengthTimeUnit']
-  if(hasBranches){
-    nwTree <- httr:::GET(paste(rotl:::otl_url(),"/", rotl:::otl_version(), "/study/", study, "/tree/", phy,".tre", sep=""))
-    tree_string <- httr:::content(nwTree, "text")
-    tree_string <- gsub( "\\[.*?\\]", "", tree_string)
-    tree_string <- gsub(" ", "_", tree_string)
-    tree <- read.tree(text=tree_string)
-  } else {
-    return(NULL)
-  }
-  rm(jsRes)
-  return(list=c(tree=tree, ntips= length(tree$tip.label), branchLengthDescription=branchLengthDescription,
-                branchLengthMode=branchLengthMode, branchLengthTimeUnit=branchLengthTimeUnit))
-}
+## Step 5. Filter the (source?) trees to obtain a set that have branch lengths.
+# (the function getStudyTrees has been moved to the bottom of this file)
 
-#tmp <- fromJSON(content(rotl:::get_study(study = "pg_1816"),"text"))
-#tmp[[6]]
+#tmp <- fromJSON(content(rotl:::get_study(study = "pg_1816"),"text")) # delete
+#tmp[[6]] # delete
 
+# the following block looks like it could become a seperate function
 
 res <- lapply(which(studyTrees$counts>2), function(x) getStudyTrees(studyTrees$table[x,1], studyTrees$table[x,2], format="newick"))
 res <- res[which(!(sapply(res, is.null)))]
@@ -79,115 +66,42 @@ summary <- data.frame(ntips = sapply(res, function(x) x$ntips),
                       mode = sapply(res, function(x) x$branchLengthMode[[1]])
 )
 
-## Get tree with most taxa
+# Step 6. Get tree with the largest number of taxa.
 ##Chosen tree and study: 1816 and tree3671
 whichTree <- 2
 tree <- res[[whichTree]][[1]]
-tree$tip.label <- gsub("'", "", tree$tip.label, fixed=TRUE)
+tree$tip.label <- gsub("'", "", tree$tip.label, fixed=TRUE) ## tidy up this tree, by removing apostrophes
 
+#################################
 
+## ## Part 4. Identify a set of exchangable taxa.
 
-
-
-
-#############################################################################
-#############################################################################
-#############################################################################
-# Exchange taxa:  we have a set of species (on a tree) with comparative data,
+# At this stage we have a set of species (on a tree) with comparative data,
 # and a set of species (on a different tree) with branch lengths, and a tree
 # (the synthetic tree) that includes most/all of the species that are in the 
 # first two trees.  We want to use the synthetic tree to match up names on
 # comparative tree with names on the time tree to figure out if any of the
 # comparative tree species can be exchanged with species on the time tree.
 
+# Step 1. Read the tree containing the species for which we have comparative data.
 comparative.tree <- read.tree("../data/Induced_whaletree.phy")
-time.tree <- tree
+time.tree <- tree # what's this?
 
-###  Step 1:  get the synthetic tree by getting the subtree for the root of
-# the comparative tree
+#  Step 2:  get the synthetic tree by getting the subtree for the root of the comparative tree
 mrca <- tol_mrca(ott_ids=ottids)$mrca_node_id
 subtree <- tol_subtree(node_id=mrca)
 subtree$tip.label <- gsub("_ott\\d+", "", subtree$tip.label) # remove ottID after the tip labels
 comparative.tree$tip.label <- gsub("_ott\\d+", "", comparative.tree$tip.label) # remove ottID after the tip labels
 
-
-
-
-exchangeTaxa <- function(tree, sp.with.trait1, sp.with.trait2) {
-  trait1 <- sp.with.trait1 # typically, comparative data
-  trait2 <- sp.with.trait2 # typically, branch length data
-
-  # setting up the data frame that contains the list of species, whether they
-  # have comparative data, and whether they have branch length data
-  df <- data.frame(tree$tip.label, trait1=rep(0, length(tree$tip.label)), trait2=rep(0, length(tree$tip.label)), group=seq(from=1, to=length(tree$tip.label), by=1))
-  df[which(df$tree.tip.label %in% trait1), "trait1"] <- 1 # sets each int.tax = 1 if that species is in the list of interesting taxa
-  df[which(df$tree.tip.label %in% trait2), "trait2"] <- 1 # sets each int.tax = 1 if that species is in the list of interesting taxa
-
-  # list of comparative species and their exchangeable taxa
-  exchange.groups <- list()
-  
-  # loop through each species with comparative trait data (in trait1)
-  for(i in trait1) {
-    
-    # if and only if the species is present in the big tree:
-    if(i %in% tree$tip.label) {
-      
-      # get the immediate ancestral node for that interesting taxon
-      # extract a subtree and get the list of species in that subtree
-      anc <- tree$edge[which(tree$edge[,2]==(which(tree$tip.label==i))),1]
-      sp.subset <- extract.clade(tree, anc)$tip.label
-      
-      # for that subset of species, if there's one interesting taxon,
-      # set all of the other groups = to the group of that interesting taxon
-      if(sum(trait1 %in% sp.subset) == 1) {
-        curr <- trait1[trait1 %in% sp.subset]
-        group <- df[which(curr == df$tree.tip.label), "group"] # get the group for the interesting taxon
-        df[which(df$tree.tip.label %in% sp.subset), "group"] <- group
-      }
-      
-      # if there are more than one interesting taxa in there, stop
-      if(sum(trait1 %in% sp.subset) > 1) {
-        stop
-      }
-      
-    } # end of what to do if the species isn't in the big tree 
-    
-  } # end of looping through species with comparative data
-
-  # next up: return the list of taxa that are exchangeable with each of
-  # the comparative species
-  comp.sp <- df[which(df$trait1 == 1), ]
-  for(j in 1:nrow(comp.sp)) {
-    # get the group number for that species
-    group.num <- comp.sp[j, "group"]
-    
-    print(group.num)
-    
-    # extract all the species that share that group number
-    e.taxa <- as.character(df[which(df$group == group.num), "tree.tip.label"])
-    
-    # add those species to the exchange.groups object
-    exchange.groups <- append(exchange.groups, list(e.taxa))
-  }
-
-  return(exchange.groups)
-
-}
-
-
+# Step 3. Identify a set of exchangable taxa.
+# (the function exchangeTaxa has been moved to the bottom of this file)
 sim.taxa <- exchangeTaxa(subtree, comparative.tree$tip.label, time.tree$tip.label)
 
+#################################
 
+## ## Part 5. Find all time calibrated trees.
 
-
-
-#############################################################################
-#############################################################################
-#############################################################################
-
-
-
-## Find all trees with calibration times
+## # Find all trees with calibration times
 #require(foreach)
 #require(doParallel)
 #registerDoParallel(cores=ncores)
@@ -243,40 +157,153 @@ cleaned <- dropna(dropTipTrees)
 #################################
 ## cleaned is the list of timetrees overlapping with the chosen source tree!
 
-## Get taxonomy
+## # Get taxonomy
 tree$tip.label <- gsub("\'", "", tree$tip.label)
 taxonomy  <- gbresolve(tree)
 plot(taxonomy$phy, show.node=TRUE, type="f", cex=0.5)
 
-## Get calibrations
-# 1. get the data (tree, occurrences)
+#################################
+
+## ## Part 6. Download calibration data from the Paleobiology Database.
+# This section describes how to utilize fossil information available on the Paleobiology Database (http://paleobiodb.org/) via the PBDB API.
+
+# The following requires the PaleobioDB R library (https://github.com/paleobiodb/paleobiodb_utilities).
+require(PaleobioDB)
+
+# Step 1. Specify the most inclusive group(s) of taxa represent in the tree. This may also be a list of taxa.
 names="cetacea"
+# Step 2. Download the data from PBDB. More information about options from downloading data can be obtained here (http://cran.r-project.org/web/packages/paleobioDB/paleobioDB.pdf) and here (http://paleobiodb.org/data1.1/occs/list).
 pbdb.data<-pbdb_occurrences(limit="all",base_name=names,vocab="pbdb",show=c("phylo", "time", "ident"))
 
-# what tree are we taking in here?
-# tree <- read.tree("./data/pg_1927.phy")
-# tree$tip.label <- gsub("\'", "", tree$tip.label)
-# whale.tree <- tree
-# tree <- extract.clade(tree, node=109) # small test case
-
-# 2. get genus + age related info
+# Step 3. Get age related information from the data downloaded from PBDB for each genus in the tree.
+# The function getGenera finds the oldest fossil occurrence for each genera and assigns it the youngest secure age of the associated fossil occurrence.
 g <- getGenera(tree,pbdb.data)
 
-# 3. assign calibrations to each node
+# Step 4. Assign calibrations to each node.
+# The function getCalibrations assigns calibration information to as many nodes in the tree as possible.
 calibrations<-getCalibrations(g)
 
-# 4. removed nested calibrations
+# Step 4. Eliminate nested (redundant) calibrations. This is neccesary because we're using fixed calibrations.
 fixed.constraints<-filter.constraints(calibrations,tree)
 
-# 5. assignning daughter nodes to calibrated parent nodes
+# Step 5. Identify the daughters (and representative tip labels) assiciated with each calibrated parent node.
 calibrated.nodes<-fill.daughters(fixed.constraints,tree)
 
 #################################
 
-## Build final timetree
-
+## ## Part 7. Build final timetree.
 
 ## congruify
 res <- congruify.phylo(reference, target)
 
+
+#################################
+# Functions that should be in a seperate file
+
+# Function findsourcetrees
+findsourcetrees <- function(otts){
+  ##start with a list of ottids
+  findstudies <- function(otts){
+    res <- rotl::studies_find_trees(property="ot:ottId", value=otts,exact = TRUE)
+    res <- fromJSON(content(res, "text"))$matched_studies
+  }
+  gettrees <- function(x, studies){
+    matched_trees <- studies[[x]]
+    treeId <- sapply(matched_trees, function(x) x$matched_trees[[1]]$nexson_id)
+    studyId <- sapply(matched_trees, function(x) x['ot:studyId'][[1]])
+    df <- cbind(studyId, treeId)
+  }
+  
+  studies <- lapply(otts, function(x) findstudies(x))
+  table <- do.call(rbind, lapply(1:length(studies), gettrees, studies=studies))
+  counts <- table(paste(table[,1], table[,2], sep="_"))
+  table <- unique(table)
+  counts <- counts[paste(table[,1], table[,2], sep="_")]
+  list(counts=counts, table = table)
+}
+
+# Function getStudyTrees
+getStudyTrees <- function(study, phy, format="newick"){
+  res <- httr:::GET(paste(rotl:::otl_url(),"/", rotl:::otl_version(), "/study/", study, "/tree/", phy, sep=""))
+  stringRes <- content(res,"text")
+  jsRes <- fromJSON(stringRes)
+  hasBranches <- length(grep("@length", stringRes))>0
+  branchLengthDescription <- jsRes[[1]]['^ot:branchLengthDescription']
+  branchLengthMode <- jsRes[[1]]['^ot:branchLengthMode']
+  branchLengthTimeUnit <- jsRes[[1]]['^ot:branchLengthTimeUnit']
+  if(hasBranches){
+    nwTree <- httr:::GET(paste(rotl:::otl_url(),"/", rotl:::otl_version(), "/study/", study, "/tree/", phy,".tre", sep=""))
+    tree_string <- httr:::content(nwTree, "text")
+    tree_string <- gsub( "\\[.*?\\]", "", tree_string)
+    tree_string <- gsub(" ", "_", tree_string)
+    tree <- read.tree(text=tree_string)
+  } else {
+    return(NULL)
+  }
+  rm(jsRes)
+  return(list=c(tree=tree, ntips= length(tree$tip.label), branchLengthDescription=branchLengthDescription,
+                branchLengthMode=branchLengthMode, branchLengthTimeUnit=branchLengthTimeUnit))
+}
+
+# Function exchangeTaxa
+exchangeTaxa <- function(tree, sp.with.trait1, sp.with.trait2) {
+  trait1 <- sp.with.trait1 # typically, comparative data
+  trait2 <- sp.with.trait2 # typically, branch length data
+  
+  # setting up the data frame that contains the list of species, whether they
+  # have comparative data, and whether they have branch length data
+  df <- data.frame(tree$tip.label, trait1=rep(0, length(tree$tip.label)), trait2=rep(0, length(tree$tip.label)), group=seq(from=1, to=length(tree$tip.label), by=1))
+  df[which(df$tree.tip.label %in% trait1), "trait1"] <- 1 # sets each int.tax = 1 if that species is in the list of interesting taxa
+  df[which(df$tree.tip.label %in% trait2), "trait2"] <- 1 # sets each int.tax = 1 if that species is in the list of interesting taxa
+  
+  # list of comparative species and their exchangeable taxa
+  exchange.groups <- list()
+  
+  # loop through each species with comparative trait data (in trait1)
+  for(i in trait1) {
+    
+    # if and only if the species is present in the big tree:
+    if(i %in% tree$tip.label) {
+      
+      # get the immediate ancestral node for that interesting taxon
+      # extract a subtree and get the list of species in that subtree
+      anc <- tree$edge[which(tree$edge[,2]==(which(tree$tip.label==i))),1]
+      sp.subset <- extract.clade(tree, anc)$tip.label
+      
+      # for that subset of species, if there's one interesting taxon,
+      # set all of the other groups = to the group of that interesting taxon
+      if(sum(trait1 %in% sp.subset) == 1) {
+        curr <- trait1[trait1 %in% sp.subset]
+        group <- df[which(curr == df$tree.tip.label), "group"] # get the group for the interesting taxon
+        df[which(df$tree.tip.label %in% sp.subset), "group"] <- group
+      }
+      
+      # if there are more than one interesting taxa in there, stop
+      if(sum(trait1 %in% sp.subset) > 1) {
+        stop
+      }
+      
+    } # end of what to do if the species isn't in the big tree 
+    
+  } # end of looping through species with comparative data
+  
+  # next up: return the list of taxa that are exchangeable with each of
+  # the comparative species
+  comp.sp <- df[which(df$trait1 == 1), ]
+  for(j in 1:nrow(comp.sp)) {
+    # get the group number for that species
+    group.num <- comp.sp[j, "group"]
+    
+    print(group.num)
+    
+    # extract all the species that share that group number
+    e.taxa <- as.character(df[which(df$group == group.num), "tree.tip.label"])
+    
+    # add those species to the exchange.groups object
+    exchange.groups <- append(exchange.groups, list(e.taxa))
+  }
+  
+  return(exchange.groups)
+  
+}
 
