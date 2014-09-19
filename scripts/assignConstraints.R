@@ -25,7 +25,7 @@ fixed.constraints<-filter.constraints(calibrations,tree)
 # 5. assignning daughter nodes to calibrated parent nodes
 calibrated.nodes<-fill.daughters(fixed.constraints,tree)
 
-getGenera <- function(tree, pbdb.data) {
+getGenera <- function(tree, pbdb.data, upper.bound=100) {
 # this function takes a tree + pbdb occurrence data
 # for each (active) node it gets the descendent genera, extracts the occ. data for each genus
 # works out the oldest age of each genus, and reassign to the active node
@@ -54,7 +54,7 @@ getGenera <- function(tree, pbdb.data) {
   
   # this obtains the youngest secure age of the oldest fossil for each genus using the pbdb occurrence data
   for(k in as.character(unique(genera$genus))) {
-    age <- pbdb.genus.min(pbdb.data, k)
+    age <- pbdb.genus.min(pbdb.data, k,upper.bound=100)
     genera[which(k == genera$genus), "age"] <- age
   }
   
