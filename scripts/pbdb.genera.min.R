@@ -1,5 +1,7 @@
 
-pbdb.genus.min<-function(pbdb.data,genera, upper.bound=100)
+
+
+pbdb.genus.min<-function(pbdb.data,genera,upper.bound=100)
 # note the upper bound is fixed but you may with to change this depending on the group
   
 {

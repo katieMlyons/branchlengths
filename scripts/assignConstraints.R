@@ -4,28 +4,28 @@ require(phytools)
 require(paleobioDB)
 
 # 1. get the data (tree, occurrences)
-names="cetacea"
-pbdb.data<-pbdb_occurrences(limit="all",base_name=names,vocab="pbdb",show=c("phylo", "time", "ident"))
+# names="cetacea"
+# pbdb.data<-pbdb_occurrences(limit="all",base_name=names,vocab="pbdb",show=c("phylo", "time", "ident"))
 
-tree <- read.tree("./data/pg_1927.phy")
-tree$tip.label <- gsub("\'", "", tree$tip.label)
+# tree <- read.tree("./data/pg_1927.phy")
+# tree$tip.label <- gsub("\'", "", tree$tip.label)
 
-whale.tree <- tree
-tree <- extract.clade(tree, node=109)
+# whale.tree <- tree
+# tree <- extract.clade(tree, node=109)
 
 # 2. get genus + age related info
-g <- getGenera(tree,pbdb.data)
+# g <- getGenera(tree,pbdb.data)
 
 # 3. assign calibrations to each node
-calibrations<-getCalibrations(g)
+# calibrations<-getCalibrations(g)
 
 # 4. removed nested calibrations
-fixed.constraints<-filter.constraints(calibrations,tree)
+# fixed.constraints<-filter.constraints(calibrations,tree)
 
 # 5. assignning daughter nodes to calibrated parent nodes
-calibrated.nodes<-fill.daughters(fixed.constraints,tree)
+# calibrated.nodes<-fill.daughters(fixed.constraints,tree)
 
-getGenera <- function(tree, pbdb.data) {
+getGenera <- function(tree, pbdb.data, upper.bound=100) {
 # this function takes a tree + pbdb occurrence data
 # for each (active) node it gets the descendent genera, extracts the occ. data for each genus
 # works out the oldest age of each genus, and reassign to the active node
@@ -54,7 +54,7 @@ getGenera <- function(tree, pbdb.data) {
   
   # this obtains the youngest secure age of the oldest fossil for each genus using the pbdb occurrence data
   for(k in as.character(unique(genera$genus))) {
-    age <- pbdb.genus.min(pbdb.data, k)
+    age <- pbdb.genus.min(pbdb.data, k,upper.bound=100)
     genera[which(k == genera$genus), "age"] <- age
   }
   
