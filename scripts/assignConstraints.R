@@ -1,3 +1,12 @@
+# This set of functions generates constraints (calibrations) for a given tree, based on fossil occurrence data downloaded from the PBDB.
+# For each node, the constraints are based on the first appearance of descendent nodes, rather than the first appearance of a given node. 
+# This is to avoid assigning (potential) stem group taxa to the crown group. 
+# In this respect, any constraints generated using this strategy will be conservative minimum estimates of divergence times.
+# Presently, these functions only search for occurrence data based on genera that are present in the tree. 
+# (In future implementations we may use higher taxonomy, which may increase the amount of occurrence data that could be used to inform calibrations.)
+# Note that data downloaded from the PBDB should be treated with caution. (?Provide Canidae example?)
+
+
 require(ape)
 require(geiger)
 require(phytools)
@@ -25,17 +34,19 @@ require(paleobioDB)
 # 5. assignning daughter nodes to calibrated parent nodes
 # calibrated.nodes<-fill.daughters(fixed.constraints,tree)
 
+# Obtain age related information for the descendents of each node.
 getGenera <- function(tree, pbdb.data, upper.bound=100) {
-# this function takes a tree + pbdb occurrence data
-# for each (active) node it gets the descendent genera, extracts the occ. data for each genus
-# works out the oldest age of each genus, and reassign to the active node
-# the function will only work for trees containing tips of the format 
-# Genus_species  
+# This function takes a tree + pbdb occurrence data.
+# For each (active) node it gets the descendent genera, extracts the occ. data for each genus
+# works out the oldest age of each genus, and assign this age to the active node.
+# The function outputs a dataframe containing this information.
+# Note this function will only work for trees containing tips in the format Genus_species
   
   # eliminare apostrophes
   tree$tip.label <- gsub("\'", "", tree$tip.label)
   
-  # for each node this block finds its desecendents
+  # for each node this block finds its two desecendent daughter nodes 
+  # (and all their descendents)
   genera<-data.frame(node=numeric(), genus=character(), age=numeric())
   for (i in (length(tree$tip.label)+1):(length(tree$tip.label)*2-1) ) {
       row=which(tree$edge[,1]==i)
@@ -52,9 +63,9 @@ getGenera <- function(tree, pbdb.data, upper.bound=100) {
       }
     }
   
-  # this obtains the youngest secure age of the oldest fossil for each genus using the pbdb occurrence data
+  # the following obtains the youngest secure age of the oldest fossil for each genus using the pbdb occurrence data
   for(k in as.character(unique(genera$genus))) {
-    age <- pbdb.genus.min(pbdb.data, k,upper.bound=100)
+    age <- pbdb.genus.min(pbdb.data, k,upper.bound)
     genera[which(k == genera$genus), "age"] <- age
   }
   
@@ -63,12 +74,12 @@ getGenera <- function(tree, pbdb.data, upper.bound=100) {
   
 # g <- getGenera(tree,pbdb.data)
 
-####
-
-# this function will generate a calibration matrix
-# and populate it using constraints based on pbdb occurrence data
+# ------ 
+# Identify calibrations
 getCalibrations<-function(genera,upper.bound) {
-
+  # this function generates a calibration matrix (node and corresponding age constraints)
+  # based on pbdb occurrence data
+  
   # assign that date to the ancestral node
   calibrations <- data.frame(node=unique(g$node), age=NA)
 
@@ -99,10 +110,13 @@ return(calibrations)
 
 # calibrations<-getCalibrations(g)
 
-# filter.constraints
-# the purpose of this function is to eliminate duplicate (nested) calibrations
+# ------ 
 
+# Eliminate nested calibrations
 filter.constraints<-function(calibrations,tree) {
+  # the purpose of this function is to eliminate duplicate (nested) calibrations
+  # e.g. ancestor descendent pairs that share the same calibration (because the first appearance in the fossil record is the same for both nodes)
+  # The function returns the node - calibration pair for the youngest node only.
 
 fixed.constraints<-data.frame(node=numeric(), age=numeric())
 
@@ -167,11 +181,11 @@ return(fixed.constraints)
 
 # fixed.constraints<-filter.constraints(calibrations,tree)
 
-# ------
-# the function fill.daughters
-# inserts daughter node IDs into the (non-nested) calbration table
-
+# ------ 
+# Create the table required for congruify
 fill.daughters<-function(fixed.constraints,tree) {
+# this function simply creates a table containing (1) node ID, (2) calibration age, (3) descendent nodes IDs, and 
+# (4) respentative tip labels representing the divergence. Note this table will contain non-nested calibations.
 
 # add the descendent node IDs to the fixed.constraints table
 fixed.constraints<-cbind(fixed.constraints,child1=0,child2=0,tip1=0,tip2=0) 
@@ -184,7 +198,7 @@ for(i in 1:nrow(fixed.constraints)) {
   fixed.constraints$child1[i]=descendents[1]
   fixed.constraints$child2[i]=descendents[2]
   
-  # get representative tip IDs
+  # get representative tip IDs & lables
   decs<-getDescendants(tree, descendents[1])
   
   if(length(decs) > 1) {
@@ -211,24 +225,3 @@ for(i in 1:nrow(fixed.constraints)) {
 return(fixed.constraints)
 # EOF
 }
-
-# generate.calibrated.subtrees
-
-# start at the oldest node; 
-
-# fetch the two descendents
-
-# choose a tip ramdomly for each side (store in list of tips to keep)
-
-# go to the next oldest node (in the table)
-
-# get the two daughters (lists of descendents) (check to see if any of these descendents daughter is already in the list)
-
-
-
-
-
-
-
-
-
