@@ -2,7 +2,8 @@
 
 
 pbdb.genus.min<-function(pbdb.data,genera,upper.bound=100)
-# note the upper bound is fixed but you may with to change this depending on the group
+# This function gets the youngest secure age of the oldest fossil occurrence for a given genera.
+# A default is specified for the upper bound but you may with to change this depending on the group.
   
 {
 

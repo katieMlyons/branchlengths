@@ -2,10 +2,10 @@
 # For each node, the constraints are based on the first appearance of descendent nodes, rather than the first appearance of a given node. 
 # This is to avoid assigning (potential) stem group taxa to the crown group. 
 # In this respect, any constraints generated using this strategy will be conservative minimum estimates of divergence times.
+# Because these are minimum constraints, we take the youngest secure age of the fossil occurrence.
 # Presently, these functions only search for occurrence data based on genera that are present in the tree. 
 # (In future implementations we may use higher taxonomy, which may increase the amount of occurrence data that could be used to inform calibrations.)
 # Note that data downloaded from the PBDB should be treated with caution. (?Provide Canidae example?)
-
 
 require(ape)
 require(geiger)
