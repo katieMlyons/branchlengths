@@ -15,7 +15,7 @@ require(rotl)
 require(rjson)
 require(geiger)
 taxalist <- table$genspec
-tax <- rotl::tnrs_match_names(taxalist)
+#tax <- rotl::tnrs_match_names(taxalist)
 tax <- tnrs_match_names(as.character(taxalist))
 
 ottids <- as.character(tax$ott_id) # gets ottID for the comparative data
