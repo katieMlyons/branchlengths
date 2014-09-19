@@ -17,13 +17,13 @@ require(paleobioDB)
 # g <- getGenera(tree,pbdb.data)
 
 # 3. assign calibrations to each node
-# calibrations<-getCalibrations(g)
+calibrations<-getCalibrations(g)
 
 # 4. removed nested calibrations
-# fixed.constraints<-filter.constraints(calibrations,tree)
+fixed.constraints<-filter.constraints(calibrations,tree)
 
 # 5. assignning daughter nodes to calibrated parent nodes
-# calibrated.nodes<-fill.daughters(fixed.constraints,tree)
+calibrated.nodes<-fill.daughters(fixed.constraints,tree)
 
 getGenera <- function(tree, pbdb.data) {
 # this function takes a tree + pbdb occurrence data
@@ -174,15 +174,61 @@ return(fixed.constraints)
 fill.daughters<-function(fixed.constraints,tree) {
 
 # add the descendent node IDs to the fixed.constraints table
-fixed.constraints<-cbind(fixed.constraints,child1=0,child2=0) 
+fixed.constraints<-cbind(fixed.constraints,child1=0,child2=0,tip1=0,tip2=0) 
 
 for(i in 1:nrow(fixed.constraints)) {
   active.node <- fixed.constraints[i, "node"]
   row=which(tree$edge[,1]==active.node)
   descendents=tree$edge[,2][row]
+  # get descendent node/edge IDs
   fixed.constraints$child1[i]=descendents[1]
-  fixed.constraints$child2[i]=descendents[2]  
+  fixed.constraints$child2[i]=descendents[2]
+  
+  # get representative tip IDs
+  decs<-getDescendants(tree, descendents[1])
+  
+  if(length(decs) > 1) {
+    rand.tip.no=(sample(decs,1))    
+  }
+  else {
+    rand.tip.no=decs[1]
+  }
+  rand.tip1=tree$tip.label[rand.tip.no]
+  
+  decs<-getDescendants(tree, descendents[2])
+  if(length(decs) > 1) {
+    rand.tip.no=(sample(decs,1))    
+  }
+  else {
+    rand.tip.no=decs[1]
+  }
+  rand.tip2=tree$tip.label[rand.tip.no]
+  
+  fixed.constraints$tip1[i]=rand.tip1
+  fixed.constraints$tip2[i]=rand.tip2
+  
 }
 return(fixed.constraints)
 # EOF
 }
+
+# generate.calibrated.subtrees
+
+# start at the oldest node; 
+
+# fetch the two descendents
+
+# choose a tip ramdomly for each side (store in list of tips to keep)
+
+# go to the next oldest node (in the table)
+
+# get the two daughters (lists of descendents) (check to see if any of these descendents daughter is already in the list)
+
+
+
+
+
+
+
+
+
