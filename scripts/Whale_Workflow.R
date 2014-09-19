@@ -36,7 +36,7 @@ require(geiger) # delete
 taxalist <- table$genspec
 <<<<<<< HEAD
 # Step 2. what are the following two lines doing?
-tax <- rotl::tnrs_match_names(taxalist)
+tax <- rotl::tnrs_match_names(as.character(taxalist))
 =======
 #tax <- rotl::tnrs_match_names(taxalist)
 >>>>>>> 470c6d33b6e2efa42c611c21c9df4788b3405fac
@@ -143,20 +143,20 @@ plot(taxonomy$phy, show.node=TRUE, type="f", cex=0.5)
 # This section describes how to utilize fossil information available on the Paleobiology Database (http://paleobiodb.org/) via the PBDB API.
 
 # The following requires the PaleobioDB R library (https://github.com/paleobiodb/paleobiodb_utilities).
-require(PaleobioDB)
+require(paleobioDB)
 
 # Step 1. Specify the most inclusive group(s) of taxa represent in the tree. This may also be a list of taxa.
 names="cetacea"
 # Step 2. Download the data from PBDB. More information about options from downloading data can be obtained here (http://cran.r-project.org/web/packages/paleobioDB/paleobioDB.pdf) and here (http://paleobiodb.org/data1.1/occs/list).
-pbdb.data<-pbdb_occurrences(limit="all",base_name=names,vocab="pbdb",show=c("phylo", "time", "ident"))
+pbdb.data<-pbdb_occurrences(limit="all", base_name=names, vocab="pbdb", show=c("phylo", "time", "ident"))
 
 # Step 3. Get age related information from the data downloaded from PBDB for each genus in the tree.
 # The function getGenera finds the oldest fossil occurrence for each genera and assigns it the youngest secure age of the associated fossil occurrence.
-g <- getGenera(tree,pbdb.data)
+g <- getGenera(tree, pbdb.data, upper.bound=100)
 
 # Step 4. Assign calibrations to each node.
 # The function getCalibrations assigns calibration information to as many nodes in the tree as possible.
-calibrations<-getCalibrations(g)
+calibrations<-getCalibrations(g) # produces a lot of -Inf for calibrations and consequently warnings; however, still runs
 
 # Step 4. Eliminate nested (redundant) calibrations. This is neccesary because we're using fixed calibrations.
 fixed.constraints<-filter.constraints(calibrations,tree)
@@ -187,27 +187,24 @@ res <- congruify.phylo(reference, target)
 # comparative tree species can be exchanged with species on the time tree.
 
 # Step 1. Read the tree containing the species for which we have comparative data.
-comparative.tree <- read.tree("../data/Induced_whaletree.phy")
-time.tree <- tree # what's this?
+# comparative.tree <- read.tree("../data/Induced_whaletree.phy")
+time.tree <- tree # rename the tree to time.tree to clarify its purpose here
 
 #  Step 2:  get the synthetic tree by getting the subtree for the root of the comparative tree
 mrca <- tol_mrca(ott_ids=ottids)$mrca_node_id
 scaffold <- tol_subtree(node_id=mrca)
 scaffold$tip.label <- gsub("_ott\\d+", "", scaffold$tip.label) # remove ottID after the tip labels
-comparative.tree$tip.label <- gsub("_ott\\d+", "", comparative.tree$tip.label) # remove ottID after the tip labels
-time.tree <- tree
+# comparative.tree$tip.label <- gsub("_ott\\d+", "", comparative.tree$tip.label) # remove ottID after the tip labels
+# time.tree <- tree
 
 # Step 3. Identify a set of exchangable taxa.
 # (the function exchangeTaxa has been moved to the bottom of this file)
-taxa.df <- findExchangeableGroups(scaffold, comparative.tree$tip.label)
+taxa.df <- findExchangeableGroups(scaffold, taxalist)
 exchange.groups <- listExchangeableTaxa(taxa.df)
-tree <- exchangeTaxa(time.tree, comparative$tip.label, exchange.groups)  
-
-
+tree <- exchangeTaxa(time.tree, taxalist, exchange.groups)  
 
 
 #################################
-
 
 
 
