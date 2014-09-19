@@ -74,7 +74,7 @@ tree$tip.label <- gsub("'", "", tree$tip.label, fixed=TRUE) ## tidy up this tree
 
 #################################
 
-## ## Part 5. Find all time calibrated trees.
+## ## Part 4. Find all time calibrated trees.
 
 ## # Find all trees with calibration times
 #require(foreach)
@@ -139,7 +139,7 @@ plot(taxonomy$phy, show.node=TRUE, type="f", cex=0.5)
 
 #################################
 
-## ## Part 6. Download calibration data from the Paleobiology Database.
+## ## Part 5. Download calibration data from the Paleobiology Database.
 # This section describes how to utilize fossil information available on the Paleobiology Database (http://paleobiodb.org/) via the PBDB API.
 
 # The following requires the PaleobioDB R library (https://github.com/paleobiodb/paleobiodb_utilities).
@@ -177,7 +177,7 @@ res <- congruify.phylo(reference, target)
 
 #################################
 
-## ## Part 4. Identify a set of exchangable taxa.
+## ## Part 6. Identify a set of exchangable taxa.
 
 # At this stage we have a set of species (on a tree) with comparative data,
 # and a set of species (on a different tree) with branch lengths, and a tree
@@ -258,6 +258,19 @@ getStudyTrees <- function(study, phy, format="newick"){
                 branchLengthMode=branchLengthMode, branchLengthTimeUnit=branchLengthTimeUnit))
 }
 
+
+##########################################################
+###  Getting taxa you care about onto a tree you have time information for
+###
+###  Sometimes you have comparative data for species that you're interested in,
+###  and access to a time tree that has species you're not as excited about. Using
+###  a larger, more inclusive scaffold tree (such as a portion of the synthetic
+###  tree derived from OpenTree), you can match species for which you have
+###  comparative data to species for which you have time data, based on their
+###  phylogenetic relationships: if a species with comparative data is closely related
+###  to one with time data, you can exchange those taxa to create a version of the
+###  time tree that includes more of the species you're interested in.
+##########################################################
 # Function getAnc
 getAnc <- function(tree, node) {
   if(is.character(node)) {
