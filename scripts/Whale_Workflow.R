@@ -243,14 +243,35 @@ cleaned <- dropna(dropTipTrees)
 #################################
 ## cleaned is the list of timetrees overlapping with the chosen source tree!
 
-
 ## Get taxonomy
 tree$tip.label <- gsub("\'", "", tree$tip.label)
 taxonomy  <- gbresolve(tree)
 plot(taxonomy$phy, show.node=TRUE, type="f", cex=0.5)
 
 ## Get calibrations
+# 1. get the data (tree, occurrences)
+names="cetacea"
+pbdb.data<-pbdb_occurrences(limit="all",base_name=names,vocab="pbdb",show=c("phylo", "time", "ident"))
 
+# what tree are we taking in here?
+# tree <- read.tree("./data/pg_1927.phy")
+# tree$tip.label <- gsub("\'", "", tree$tip.label)
+# whale.tree <- tree
+# tree <- extract.clade(tree, node=109) # small test case
+
+# 2. get genus + age related info
+g <- getGenera(tree,pbdb.data)
+
+# 3. assign calibrations to each node
+calibrations<-getCalibrations(g)
+
+# 4. removed nested calibrations
+fixed.constraints<-filter.constraints(calibrations,tree)
+
+# 5. assignning daughter nodes to calibrated parent nodes
+calibrated.nodes<-fill.daughters(fixed.constraints,tree)
+
+#################################
 
 ## Build final timetree
 
