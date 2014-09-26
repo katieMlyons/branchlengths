@@ -6,11 +6,12 @@
 # setwd("~/repos/OThackathon/branchlengths/scripts/")
 # setwd("/Users/miranda/Desktop/OpenTree/branchlengths/scripts/")
 
-#require(devtools)
-#install_github("rotl", user="fmichonneau")
+require(devtools)
+install_github("rotl", user="fmichonneau")
 # require(rotl)
 # require(rjson)
 # require(geiger)
+# require(httr)
 
 #################################
 
@@ -34,12 +35,12 @@ require(geiger) # delete
 
 # Step 1. Generate a list of taxa for which we have comparive data.
 taxalist <- table$genspec
-<<<<<<< HEAD
+
 # Step 2. what are the following two lines doing?
 tax <- rotl::tnrs_match_names(as.character(taxalist))
-=======
+
 #tax <- rotl::tnrs_match_names(taxalist)
->>>>>>> 470c6d33b6e2efa42c611c21c9df4788b3405fac
+
 tax <- tnrs_match_names(as.character(taxalist))
 
 # Step 3. Gets ottIDs for the comparative data.
